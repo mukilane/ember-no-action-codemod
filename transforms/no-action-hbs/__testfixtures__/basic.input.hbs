@@ -1,10 +1,14 @@
 {{action "methodName"}}
 {{action this.method param}}
 {{this.method}}
+{{action "methodName" param=value}}
+{{action "methodName" param param1=value}}
 
 <div
     onclick={{action "methodName"}}
     onclick={{action "methodName" param}}
+    onclick={{action "methodName" param param1=value}}
     {{on "click" (action "methodName")}}
+    {{on "click" (action "methodName" param param1=value)}}
 >
 </div>

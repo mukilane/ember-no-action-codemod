@@ -10,6 +10,11 @@ module.exports = function ({ source /*, path*/ }, { parse, visit }) {
           const firstParam = node.params[0];
           const secondParam = node.params[1];
 
+          // Skip transformation if there are named arguments
+          if (node.hash && node.hash.pairs.length > 0) {
+            return node;
+          }
+
           if (firstParam.type === 'StringLiteral' && secondParam) {
             // Transform {{action "methodName" param}} to {{fn this.methodName param}}
             return b.mustache(b.path('fn'), [
@@ -33,6 +38,11 @@ module.exports = function ({ source /*, path*/ }, { parse, visit }) {
         if (node.path.original === 'action') {
           const firstParam = node.params[0];
           const secondParam = node.params[1];
+
+          // Skip transformation if there are named arguments
+          if (node.hash && node.hash.pairs.length > 0) {
+            return node;
+          }
 
           if (firstParam.type === 'StringLiteral' && secondParam) {
             // Transform (action "methodName" param) to (fn this.methodName param)
