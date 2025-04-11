@@ -49,12 +49,22 @@ module.exports = function transformer(file, api) {
       } else {
         // Add a new import declaration for `action` at the end of other imports
         const lastImportIndex = root.find(j.ImportDeclaration).size() - 1;
-        root.find(j.ImportDeclaration).at(lastImportIndex).insertAfter(
-          j.importDeclaration(
-            [j.importSpecifier(j.identifier('action'))],
-            j.literal('@ember/object')
-          )
+        
+        let dec = j.importDeclaration(
+          [j.importSpecifier(j.identifier('action'))],
+          j.literal('@ember/object')
         );
+
+        if (lastImportIndex === -1) {
+          // No existing import declarations, add at the beginning
+          root.get().node.program.body.unshift(
+            dec
+          );
+        } else {
+          root.find(j.ImportDeclaration).at(lastImportIndex).insertAfter(
+            dec
+          );
+        }
       }
     }
   }
