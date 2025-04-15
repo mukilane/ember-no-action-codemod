@@ -68,27 +68,48 @@ module.exports = function ({ source /*, path*/ }, { parse, visit }) {
           const firstParam = node.params[0];
           const secondParam = node.params[1];
 
-          // Skip transformation if there are named arguments
+          // For named arguments, preserve the original node structure
           if (node.hash?.pairs?.length > 0) {
-            return node;
+            // Create a new modifier with the same structure
+            const newNode = b.elementModifier(
+              'action',
+              node.params,
+              node.hash
+            );
+            // Copy over location info to preserve formatting
+            newNode.loc = node.loc;
+            return newNode;
           }
 
-          if (firstParam.type === 'StringLiteral' && secondParam) {
-            // Transform {{action "methodName" param}} to {{on "click" (fn this.methodName param)}}
-            return b.elementModifier(b.path("on"), [ b.string("click"), b.sexpr(b.path('fn'), [
-                b.path(`this.${firstParam.value}`),
+          // For non-named arguments, transform to on helper
+          const clickParam = b.string('click');
+          if (firstParam.type === 'StringLiteral') {
+            const methodName = b.path(`this.${firstParam.value}`);
+            // If there are additional params, use fn helper
+            if (secondParam) {
+              const fnExpr = b.sexpr(b.path('fn'), [
+                methodName,
                 ...node.params.slice(1)
-              ])
-            ]);
-          } else if (firstParam.type === 'StringLiteral') {
-            // Transform {{action "methodName"}} to {{on "click" this.methodName}}
-            return b.elementModifier(b.path("on"), [ b.string("click"), b.path(`this.${firstParam.value}`) ]);
-          } else if (secondParam) {
-            // Transform {{action this.method param}} to {{on "click" (fn this.method param)}}
-            return b.elementModifier(b.path("on"), [ b.string("click"), b.sexpr(b.path('fn'), node.params) ]);
+              ]);
+              const newNode = b.elementModifier('on', [clickParam, fnExpr]);
+              newNode.loc = node.loc; // Preserve location info
+              return newNode;
+            } else {
+              // Simple case, just the method name
+              const newNode = b.elementModifier('on', [clickParam, methodName]);
+              newNode.loc = node.loc; // Preserve location info
+              return newNode;
+            }
           } else {
-            // Transform {{action this.method}} to {{on "click" this.method}}
-            return b.elementModifier(b.path("on"), [ b.string("click"), firstParam ]);
+            // Handle transformations for non-string literals
+            const newNode = b.elementModifier('on', [
+              clickParam,
+              secondParam ? 
+                b.sexpr(b.path('fn'), node.params) : 
+                firstParam
+            ]);
+            newNode.loc = node.loc; // Preserve location info
+            return newNode;
           }
         }
       }
