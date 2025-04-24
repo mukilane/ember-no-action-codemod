@@ -9,6 +9,7 @@ module.exports = function ({ source /*, path*/ }, { parse, visit }) {
         if (node.path.original === 'action') {
           const firstParam = node.params[0];
           const secondParam = node.params[1];
+          console.log(node.params[0]?.value);
 
           // Skip transformation if there are named arguments
           if (node.hash?.pairs?.length > 0) {
@@ -38,6 +39,7 @@ module.exports = function ({ source /*, path*/ }, { parse, visit }) {
         if (node.path.original === 'action') {
           const firstParam = node.params[0];
           const secondParam = node.params[1];
+          console.log(node.params[0]?.value);
 
           // Skip transformation if there are named arguments
           if (node.hash?.pairs?.length > 0) {
@@ -67,6 +69,7 @@ module.exports = function ({ source /*, path*/ }, { parse, visit }) {
         if (node.path.original === 'action') {
           const firstParam = node.params[0];
           const secondParam = node.params[1];
+          console.log(node.params[0]?.value);
 
           // For named arguments, preserve the original node structure
           if (node.hash?.pairs?.length > 0) {
