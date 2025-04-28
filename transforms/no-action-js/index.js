@@ -146,7 +146,7 @@ module.exports = function transformer(file, api) {
             let keyName = actionProperty.key.name;
 
             if (existingKeys.has(keyName)) {
-              console.warn("[WARNING]: This method "+ keyName + " exists inside of the actions object as well as present in outside of the actions object. It has been renamed to "+keyName+"Action avoid conflicts. Makesure to check names in both JS & hbs file.");
+              console.log("[WARNING]: This method "+ keyName + " exists inside of the actions object as well as present in outside of the actions object. It has been renamed to "+keyName+"Action avoid conflicts. Makesure to check names in both JS & hbs file.");
               keyName = `${keyName}Action`;
             }
 
