@@ -1,11 +1,43 @@
 const { getParser } = require('codemod-cli').jscodeshift;
 const { getOptions } = require('codemod-cli');
+const fs = require('fs');
+const path = require('path');
+
+// === NEW HELPER FUNCTION ===
+function getActionsFromHBS(jsFilePath) {
+  const hbsFilePath = jsFilePath
+    .replace('/components/', '/templates/components/')
+    .replace('.js', '.hbs');
+
+  if (!fs.existsSync(hbsFilePath)) {
+    return [];
+  }
+
+  const hbsContent = fs.readFileSync(hbsFilePath, 'utf8');
+  const matches = [];
+
+  // Match both {{action "goBack"}} and {{action this.goBack}} with flexible whitespace
+  const actionPattern = /\s*action\s+(?:"([a-zA-Z0-9_]+)"|this\.([a-zA-Z0-9_]+))/gms;
+
+  let match;
+  while ((match = actionPattern.exec(hbsContent)) !== null) {
+    const actionName = match[1] || match[2]; // pick non-null
+    if (actionName) {
+      matches.push(actionName);
+    }
+  }
+
+  return matches;
+}
+
 
 module.exports = function transformer(file, api) {
   const j = getParser(api);
   const options = getOptions();
 
   const root = j(file.source);
+  const jsFilePath = file.path;
+  const hbsActions = getActionsFromHBS(jsFilePath);
 
   // Ensure the `action` import is present
   const importDeclarations = root.find(j.ImportDeclaration, {
@@ -78,6 +110,31 @@ module.exports = function transformer(file, api) {
       for (let i = properties.length - 1; i >= 0; i--) {
         const property = properties[i];
 
+        if(
+          property?.type === 'ObjectMethod'  && 
+          hbsActions.includes(property.key.name) &&
+          property.key.name !== 'actions'
+        ){
+          const newProperty = j.objectProperty(
+            j.identifier(property.key.name),
+            j.callExpression(
+              j.identifier('action'),
+              [
+                j.functionExpression(
+                  null,            
+                  property.params,   
+                  property.body,     
+                  property.generator,
+                  property.async
+                )
+              ]
+            )
+          );
+    
+          // Replace the method with the new property
+          properties.splice(i, 1, newProperty);
+        }
+
         if (
           property.key &&
           property.key.name === 'actions' &&
@@ -89,6 +146,7 @@ module.exports = function transformer(file, api) {
             let keyName = actionProperty.key.name;
 
             if (existingKeys.has(keyName)) {
+              console.warn("[WARNING]: This method "+ keyName + " exists inside of the actions object as well as present in outside of the actions object. It has been renamed to "+keyName+"Action avoid conflicts. Makesure to check names in both JS & hbs file.");
               keyName = `${keyName}Action`;
             }
 
